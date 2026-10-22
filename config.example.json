@@ -1,0 +1,79 @@
+{
+  "$comment": "Copy to config.json and fill in. config.json is gitignored. Any value can be overridden by an env var (see .env.example). Secrets left blank just disable that widget gracefully.",
+
+  "location": {
+    "name": "浜松",
+    "lat": 34.7108,
+    "lon": 137.7261,
+    "timezone": "Asia/Tokyo"
+  },
+
+  "server": {
+    "host": "0.0.0.0",
+    "port": 7000
+  },
+
+  "stream": {
+    "enabled": false,
+    "url": "http://127.0.0.1:7000/",
+    "width": 1920,
+    "height": 1080,
+    "fps": 15,
+    "bitrate": "2000k",
+    "gop": 30,
+    "segmentTime": 2,
+    "hlsDir": "hls"
+  },
+
+  "providers": {
+    "weather": {
+      "enabled": true,
+      "refreshSec": 600
+    },
+
+    "spotify": {
+      "enabled": true,
+      "refreshSec": 5,
+      "clientId": "",
+      "clientSecret": "",
+      "refreshToken": ""
+    },
+
+    "entetsuBus": {
+      "$comment": "courseId is the id in the official bus-location URL: https://transfer-cloud.navitime.biz/entetsu/approachings/<courseId>/location-map . busstopId is optional (defaults to the boarding pole).",
+      "enabled": true,
+      "refreshSec": 30,
+      "customer": "entetsu",
+      "stops": [
+        {
+          "label": "浜松駅 [6]北寺島・大塚方面",
+          "courseId": "0007700065",
+          "max": 4
+        }
+      ]
+    },
+
+    "trains": {
+      "$comment": "Status comes from Yahoo! 路線情報. yahooPref 22 = 静岡. Line codes: 7=東海道新幹線, 192=東海道本線(熱海〜豊橋), 249=遠州鉄道線, 254=天竜浜名湖鉄道線.",
+      "enabled": true,
+      "refreshSec": 120,
+      "yahooPref": 22,
+      "lines": [
+        { "code": "7", "name": "東海道新幹線", "shinkansen": true },
+        { "code": "192", "name": "東海道本線(熱海〜豊橋)" },
+        { "code": "249", "name": "遠州鉄道線" }
+      ]
+    },
+
+    "calendar": {
+      "enabled": true,
+      "refreshSec": 300,
+      "clientId": "",
+      "clientSecret": "",
+      "refreshToken": "",
+      "calendarIds": ["primary"],
+      "maxEvents": 6,
+      "lookAheadDays": 7
+    }
+  }
+}

@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# local secrets / config
+.env
+config.json
+config.local.json
+
+# runtime / generated media
+hls/
+*.ts
+!server/src/**/*.ts
+!web/src/**/*.ts
+*.m3u8
+.cache/

@@ -1,0 +1,26 @@
+{
+  "name": "meural-signage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted signage dashboard (weather, Spotify, Entetsu bus, train status, Google Calendar) rendered in a headless browser and streamed to a Meural Canvas via meural-hls.",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace web & npm run dev --workspace server",
+    "dev:web": "npm run dev --workspace web",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace web && npm run build --workspace server",
+    "start": "node server/dist/index.js",
+    "stream": "node server/dist/index.js --stream",
+    "auth:spotify": "npm run auth:spotify --workspace server",
+    "auth:google": "npm run auth:google --workspace server",
+    "typecheck": "npm run typecheck --workspace web && npm run typecheck --workspace server"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
