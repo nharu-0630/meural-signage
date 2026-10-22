@@ -62,6 +62,10 @@ npm start                             # http://localhost:7000
 Open `http://localhost:7000` — the dashboard renders immediately with weather,
 bus and train data. Spotify and Calendar fill in once their credentials are set.
 
+Want to preview the fully-populated layout (playing track, bus arrivals, events)
+without credentials or waiting for buses to run? Open
+`http://localhost:7000/?demo=1`.
+
 For development with hot reload:
 
 ```bash
