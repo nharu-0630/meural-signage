@@ -1,0 +1,562 @@
+:root {
+  --bg0: #090c12;
+  --bg1: #121722;
+  --card: rgba(255, 255, 255, 0.045);
+  --card-b: rgba(255, 255, 255, 0.09);
+  --fg: #eef2f8;
+  --muted: #8a97a8;
+  --dim: #5f6b7b;
+  --accent: #4f8cff;
+  --ok: #34c759;
+  --warn: #ff9f0a;
+  --err: #ff453a;
+  --font: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: var(--bg0);
+  color: var(--fg);
+  font-family: var(--font);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.stream {
+  cursor: none;
+}
+
+#boot {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 28px;
+}
+
+/* 1920x1080 stage, scaled to fit the window by main.ts */
+#app {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+  background: radial-gradient(1200px 800px at 15% -10%, #1a2334 0%, var(--bg1) 45%, var(--bg0) 100%);
+  display: grid;
+  grid-template-columns: 624px 1fr 560px;
+  grid-template-rows: 130px repeat(3, 1fr);
+  grid-template-areas:
+    "header  header  header"
+    "weather spotify calendar"
+    "weather trains  calendar"
+    "weather bus     calendar";
+  gap: 22px;
+  padding: 26px 32px 32px;
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+}
+.topbar .loc {
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.topbar .clock {
+  text-align: right;
+}
+.clk-time {
+  font-size: 92px;
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.clk-time #clk-sec {
+  font-size: 44px;
+  color: var(--accent);
+  margin-left: 10px;
+  font-weight: 400;
+}
+.clk-date {
+  font-size: 26px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ---------- cards ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-b);
+  border-radius: 22px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+}
+.card.weather {
+  grid-area: weather;
+}
+.card.spotify {
+  grid-area: spotify;
+}
+.card.trains {
+  grid-area: trains;
+}
+.card.bus {
+  grid-area: bus;
+}
+.card.calendar {
+  grid-area: calendar;
+}
+.card-h {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex: 0 0 auto;
+}
+.card-h h2 {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+.card-b {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.badge {
+  font-size: 18px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.badge.warn {
+  color: #1a1203;
+  background: var(--warn);
+}
+.badge.err {
+  color: #1a0303;
+  background: var(--err);
+}
+.badge.muted {
+  color: var(--muted);
+  border: 1px solid var(--card-b);
+}
+.empty {
+  color: var(--dim);
+  font-size: 24px;
+  margin: auto 0;
+}
+.empty code {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 20px;
+}
+
+/* ---------- weather ---------- */
+.wx-now {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--card-b);
+}
+.wx-icon svg {
+  width: 150px;
+  height: 160px;
+}
+.wx-temp {
+  font-size: 128px;
+  font-weight: 250;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.wx-temp span {
+  font-size: 64px;
+  color: var(--muted);
+}
+.wx-desc {
+  font-size: 34px;
+  margin-top: 6px;
+}
+.wx-sub {
+  text-align: right;
+  font-size: 24px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.wx-sub b {
+  color: var(--fg);
+  font-weight: 600;
+}
+.wx-hourly {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--card-b);
+}
+.hr {
+  text-align: center;
+}
+.hr-t {
+  font-size: 22px;
+  color: var(--muted);
+}
+.hr-i svg {
+  width: 48px;
+  height: 52px;
+}
+.hr-temp {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hr-pop {
+  font-size: 20px;
+  color: var(--dim);
+}
+.hr-pop.hi {
+  color: var(--accent);
+}
+.wx-daily {
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  justify-content: space-evenly;
+}
+.dy {
+  display: grid;
+  grid-template-columns: 1.6fr 0.6fr 0.9fr 1.3fr;
+  align-items: center;
+  font-size: 30px;
+}
+.dy-d {
+  color: var(--muted);
+}
+.dy-i svg {
+  width: 46px;
+  height: 50px;
+}
+.dy-pop {
+  color: var(--accent);
+  font-size: 24px;
+}
+.dy-t {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.dy-t b {
+  font-weight: 700;
+}
+.dy-t i {
+  color: var(--muted);
+  font-style: normal;
+  margin-left: 10px;
+}
+
+/* ---------- spotify ---------- */
+.sp {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  height: 100%;
+}
+.sp-art {
+  width: 180px;
+  height: 180px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.sp-art-x {
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.05);
+}
+.sp-art-x svg {
+  width: 90px;
+  height: 90px;
+}
+.sp-info {
+  min-width: 0;
+}
+.sp-title {
+  font-size: 40px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-artist {
+  font-size: 28px;
+  color: #cfd8e6;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-album {
+  font-size: 22px;
+  color: var(--muted);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  margin-top: 22px;
+  overflow: hidden;
+}
+.sp-fill {
+  height: 100%;
+  width: 0;
+  background: var(--ok);
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+.sp-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  color: var(--muted);
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.sp-idle {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--muted);
+  font-size: 30px;
+  margin: auto 0;
+}
+.sp-idle svg {
+  width: 56px;
+  height: 56px;
+}
+.sp-eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 46px;
+}
+.sp-eq i {
+  width: 7px;
+  background: var(--ok);
+  border-radius: 3px;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.sp-eq i:nth-child(2) {
+  animation-delay: 0.25s;
+}
+.sp-eq i:nth-child(3) {
+  animation-delay: 0.5s;
+}
+.sp-eq i:nth-child(4) {
+  animation-delay: 0.15s;
+}
+@keyframes eq {
+  0%,
+  100% {
+    height: 12px;
+  }
+  50% {
+    height: 44px;
+  }
+}
+
+/* ---------- bus ---------- */
+.bus-stop + .bus-stop {
+  margin-top: 14px;
+}
+.bus-label {
+  font-size: 23px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.bus-stop ul {
+  list-style: none;
+}
+.bus-row {
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  align-items: baseline;
+  gap: 14px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.bus-eta {
+  font-size: 31px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.bus-eta b {
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 2px;
+}
+.bus-row.soon .bus-eta {
+  color: var(--ok);
+}
+.bus-dest {
+  font-size: 26px;
+  font-weight: 600;
+}
+.bus-meta {
+  font-size: 20px;
+  color: var(--muted);
+}
+.bus-none {
+  color: var(--dim);
+  font-size: 24px;
+  padding: 10px 0;
+}
+
+/* ---------- trains ---------- */
+.tr-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  height: 100%;
+}
+.tr-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-auto-rows: min-content;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tr-name {
+  font-size: 29px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tr-chip {
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 700;
+  color: #cfe0ff;
+  background: rgba(79, 140, 255, 0.22);
+  border-radius: 6px;
+  padding: 1px 8px;
+}
+.tr-pill {
+  font-size: 23px;
+  font-weight: 700;
+  padding: 4px 16px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tr-pill.ok {
+  color: var(--ok);
+  background: rgba(52, 199, 89, 0.14);
+}
+.tr-pill.warn {
+  color: var(--warn);
+  background: rgba(255, 159, 10, 0.16);
+}
+.tr-pill.stop {
+  color: var(--err);
+  background: rgba(255, 69, 58, 0.16);
+}
+.tr-detail {
+  grid-column: 1 / -1;
+  font-size: 21px;
+  color: var(--muted);
+}
+
+/* ---------- calendar ---------- */
+.cal {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.cal-day {
+  font-size: 23px;
+  color: var(--accent);
+  font-weight: 700;
+  margin: 14px 0 6px;
+  letter-spacing: 0.05em;
+}
+.cal-day:first-child {
+  margin-top: 0;
+}
+.cal-ev {
+  display: grid;
+  grid-template-columns: 14px 86px 1fr;
+  align-items: baseline;
+  gap: 14px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.cal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  align-self: center;
+}
+.cal-time {
+  font-size: 26px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cal-body {
+  min-width: 0;
+}
+.cal-title {
+  font-size: 29px;
+  font-weight: 600;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-loc {
+  font-size: 21px;
+  color: var(--muted);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

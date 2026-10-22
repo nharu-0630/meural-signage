@@ -123,7 +123,7 @@ const DEFAULTS: Config = {
       enabled: true,
       refreshSec: 30,
       customer: "entetsu",
-      stops: [{ label: "浜松駅 [6]北寺島・大塚方面", courseId: "0007700065", max: 4 }],
+      stops: [{ label: "浜松駅 [6]北寺島・大塚方面", courseId: "0007700065", max: 3 }],
     },
     trains: {
       enabled: true,
