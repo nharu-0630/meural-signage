@@ -1,5 +1,5 @@
 import "./style.css";
-import type { SignageState } from "./types.js";
+import { signageStateSchema, type SignageState } from "./types.js";
 import { render, updateClock, tickSpotify } from "./render.js";
 import { demoState } from "./demo.js";
 
@@ -26,6 +26,8 @@ window.addEventListener("resize", fit);
 fit();
 
 let es: EventSource | null = null;
+let lastEventAt = 0;
+let polling = false;
 
 function apply(state: SignageState): void {
   render(state);
@@ -36,7 +38,8 @@ function connect(): void {
   es = new EventSource("/api/events");
   es.onmessage = (ev) => {
     try {
-      apply(JSON.parse(ev.data) as SignageState);
+      apply(signageStateSchema.parse(JSON.parse(ev.data)));
+      lastEventAt = Date.now();
     } catch {
       /* ignore malformed frame */
     }
@@ -51,11 +54,16 @@ function connect(): void {
 
 // fallback: if SSE never connects, poll the snapshot
 async function pollOnce(): Promise<void> {
+  if (polling) return;
+  polling = true;
+  const startedAt = Date.now();
   try {
-    const r = await fetch("/api/state");
-    if (r.ok) apply((await r.json()) as SignageState);
+    const r = await fetch("/api/state", { signal: AbortSignal.timeout(8000) });
+    if (r.ok && lastEventAt < startedAt) apply(signageStateSchema.parse(await r.json()));
   } catch {
     /* offline */
+  } finally {
+    polling = false;
   }
 }
 
@@ -70,6 +78,8 @@ setInterval(() => {
 if (DEMO) {
   render(demoState());
 } else {
-  void pollOnce();
   connect();
+  // SSE primes the state. Poll only while disconnected, avoiding duplicate work
+  // and a stale HTTP snapshot racing a newer live event.
+  setInterval(() => { if (es?.readyState !== EventSource.OPEN) void pollOnce(); }, 15_000);
 }

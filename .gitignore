@@ -16,3 +16,8 @@ hls/
 *.m3u8
 .cache/
 secrets/
+
+!shared/src/**/*.ts
+!server/test/**/*.ts
+!web/test/**/*.ts
+!tsconfig*.json

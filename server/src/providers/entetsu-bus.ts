@@ -1,7 +1,7 @@
 import { Provider, fetchJson } from "./base.js";
 import type { StateStore } from "../state.js";
 import type { EntetsuBusProviderConfig } from "../config.js";
-import type { BusArrival, BusState, BusStop } from "../types.js";
+import type { BusArrival, BusStop } from "../types.js";
 
 // Official Entetsu bus-location service (hosted by NAVITIME transfer-cloud).
 // Discovered endpoints (public, same JSON the bus.entetsu.co.jp site uses):

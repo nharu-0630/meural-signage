@@ -1,7 +1,7 @@
 import { Provider, fetchJson } from "./base.js";
 import type { StateStore } from "../state.js";
 import type { CalendarProviderConfig } from "../config.js";
-import type { CalendarEvent, CalendarState } from "../types.js";
+import type { CalendarEvent } from "../types.js";
 import { googleAccessToken, googleServiceAccountToken } from "../oauth.js";
 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";

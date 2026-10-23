@@ -4,7 +4,7 @@ import { fetchJson } from "./providers/base.js";
 
 /**
  * OAuth2 refresh-token helpers for Spotify and Google. We never store or need
- * the user's password; a one-time `npm run auth:*` produces a long-lived
+ * the user's password; a one-time `pnpm auth:*` produces a long-lived
  * refresh token that the provider swaps for short-lived access tokens here.
  */
 

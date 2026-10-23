@@ -10,12 +10,13 @@ export abstract class Provider {
   protected abstract refreshSec: number;
 
   private timer: NodeJS.Timeout | null = null;
-  private stopped = false;
+  private stopped = true;
 
   /** Fetch once and write the result into the store. Must not throw. */
   abstract tick(): Promise<void>;
 
   start(): void {
+    if (!this.stopped) return;
     this.stopped = false;
     const run = async () => {
       if (this.stopped) return;

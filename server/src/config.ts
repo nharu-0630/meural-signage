@@ -1,7 +1,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import "dotenv/config";
+import "./env.js";
+import { z } from "zod";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // repo root is two levels up from server/src (dev) or server/dist (build)
@@ -158,22 +159,59 @@ const DEFAULTS: Config = {
   },
 };
 
-// shallow+one-level merge is enough for our flat-ish config
-function deepMerge<T>(base: T, override: unknown): T {
-  if (override === null || typeof override !== "object" || Array.isArray(override)) {
-    return (override === undefined ? base : (override as T));
+const positiveInt = z.number().int().positive();
+const provider = { enabled: z.boolean(), refreshSec: z.number().finite().positive() };
+const configSchema: z.ZodType<Config> = z.object({
+  location: z.object({
+    name: z.string(), lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180),
+    timezone: z.string().refine((tz) => {
+      try { new Intl.DateTimeFormat("en", { timeZone: tz }); return true; } catch { return false; }
+    }, "Invalid timezone"),
+  }),
+  server: z.object({ host: z.string().min(1), port: positiveInt.max(65535) }),
+  stream: z.object({
+    enabled: z.boolean(), url: z.string().url(),
+    width: positiveInt.multipleOf(2), height: positiveInt.multipleOf(2),
+    orientation: z.enum(["landscape", "portrait"]), rotate: z.enum(["none", "cw", "ccw"]),
+    fps: z.number().positive().max(60), bitrate: z.string().regex(/^\d+(?:[kKmM])?$/),
+    gop: positiveInt, segmentTime: z.number().finite().positive(), hlsDir: z.string().min(1),
+  }),
+  providers: z.object({
+    weather: z.object(provider),
+    spotify: z.object({ ...provider, clientId: z.string(), clientSecret: z.string(), refreshToken: z.string() }),
+    entetsuBus: z.object({ ...provider, customer: z.string().min(1), stops: z.array(z.object({
+      label: z.string(), courseId: z.string().min(1), busstopId: z.string().optional(), max: positiveInt.optional(),
+    })) }),
+    trains: z.object({ ...provider, yahooPref: positiveInt, lines: z.array(z.object({
+      code: z.string().min(1), name: z.string().optional(), shinkansen: z.boolean().optional(),
+    })) }),
+    calendar: z.object({ ...provider, serviceAccountKeyFile: z.string(), clientId: z.string(),
+      clientSecret: z.string(), refreshToken: z.string(), calendarIds: z.array(z.string().min(1)),
+      maxEvents: positiveInt, lookAheadDays: positiveInt,
+    }),
+  }),
+});
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+// Merge into defaults as unknown; only schema validation can produce a Config.
+function deepMerge(base: unknown, override: unknown, path = "config"): unknown {
+  if (override === undefined) return structuredClone(base);
+  if (!isRecord(base) || !isRecord(override)) return override;
+  const out = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    if (key.startsWith("$")) continue;
+    if (!Object.hasOwn(base, key)) throw new Error(`Unknown setting: ${path}.${key}`);
+    out[key] = deepMerge(base[key], value, `${path}.${key}`);
   }
-  const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
-  for (const [k, v] of Object.entries(override as Record<string, unknown>)) {
-    if (k.startsWith("$")) continue; // skip $comment etc.
-    const b = (base as Record<string, unknown>)[k];
-    if (b && typeof b === "object" && !Array.isArray(b)) {
-      out[k] = deepMerge(b, v);
-    } else if (v !== undefined) {
-      out[k] = v;
-    }
-  }
-  return out as T;
+  return out;
+}
+
+/** Resolve partial JSON over defaults and reject invalid settings before startup. */
+export function parseConfig(raw: unknown = {}): Config {
+  return configSchema.parse(deepMerge(DEFAULTS, raw));
 }
 
 function applyEnv(cfg: Config): Config {
@@ -198,20 +236,16 @@ let cached: Config | null = null;
 
 export function loadConfig(): Config {
   if (cached) return cached;
-  let merged: Config = structuredClone(DEFAULTS);
+  let merged = parseConfig();
   const path = process.env.CONFIG_PATH
     ? resolve(process.env.CONFIG_PATH)
     : resolve(REPO_ROOT, "config.json");
   if (existsSync(path)) {
-    try {
-      const raw = JSON.parse(readFileSync(path, "utf8"));
-      merged = deepMerge(merged, raw);
-    } catch (e) {
-      console.error(`[config] failed to parse ${path}:`, (e as Error).message);
-    }
+    const raw: unknown = JSON.parse(readFileSync(path, "utf8"));
+    merged = parseConfig(raw);
   } else {
     console.warn(`[config] ${path} not found — using defaults + env. Copy config.example.json to config.json.`);
   }
-  cached = applyEnv(merged);
+  cached = configSchema.parse(applyEnv(merged));
   return cached;
 }

@@ -16,23 +16,42 @@ export async function createServer(cfg: Config, store: StateStore): Promise<Fast
   app.get("/healthz", async () => ({ ok: true, updatedAt: store.get().updatedAt }));
 
   // --- API: live updates over Server-Sent Events ---
-  app.get("/api/events", (req, reply) => {
+  const clients = new Set<import("node:http").ServerResponse>();
+  // Serialize once per state update, regardless of the number of viewers.
+  const unsubscribe = store.subscribe((state) => {
+    const data = `data: ${JSON.stringify(state)}\n\n`;
+    for (const client of clients) {
+      if (client.destroyed || client.writableNeedDrain) client.destroy();
+      else client.write(data);
+    }
+  });
+  const keepAlive = setInterval(() => {
+    for (const client of clients) {
+      if (client.destroyed || client.writableNeedDrain) client.destroy();
+      else client.write(": keep-alive\n\n");
+    }
+  }, 15_000);
+  keepAlive.unref();
+  app.addHook("onClose", async () => {
+    clearInterval(keepAlive);
+    unsubscribe();
+  });
+  // Close endless SSE responses before Fastify waits for active connections.
+  app.addHook("preClose", async () => {
+    for (const client of clients) client.end();
+    clients.clear();
+  });
+  app.get("/api/events", (_req, reply) => {
+    reply.hijack();
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
     });
-    const send = (s: unknown) => {
-      reply.raw.write(`data: ${JSON.stringify(s)}\n\n`);
-    };
-    send(store.get()); // prime with the current state
-    const unsub = store.subscribe(send);
-    const ka = setInterval(() => reply.raw.write(": keep-alive\n\n"), 15_000);
-    req.raw.on("close", () => {
-      clearInterval(ka);
-      unsub();
-    });
+    clients.add(reply.raw);
+    reply.raw.once("close", () => clients.delete(reply.raw));
+    reply.raw.write(`data: ${JSON.stringify(store.get())}\n\n`);
   });
 
   // --- HLS output (populated by the renderer when streaming is enabled) ---
@@ -53,11 +72,11 @@ export async function createServer(cfg: Config, store: StateStore): Promise<Fast
   if (existsSync(webDist)) {
     await app.register(fastifyStatic, { root: webDist, prefix: "/" });
   } else {
-    warn("server", `web build not found at ${webDist}. Run \`npm run build\`. Serving a placeholder.`);
+    warn("server", `web build not found at ${webDist}. Run \`pnpm build\`. Serving a placeholder.`);
     app.get("/", async (_req, reply) => {
       reply.type("text/html").send(
         `<!doctype html><meta charset=utf-8><body style="background:#111;color:#eee;font-family:sans-serif;padding:3rem">
-         <h1>meural-signage</h1><p>Frontend not built yet. Run <code>npm run build</code> (or <code>npm run dev</code> for the Vite dev server on :5173).</p>
+         <h1>meural-signage</h1><p>Frontend not built yet. Run <code>pnpm build</code> (or <code>pnpm dev</code> for the Vite dev server on :5173).</p>
          <p>API is live: <a style="color:#4f8cff" href="/api/state">/api/state</a></p></body>`,
       );
     });

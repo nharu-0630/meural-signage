@@ -96,7 +96,7 @@ function isDayHour(iso: string): boolean {
 /* ---------------- spotify ---------------- */
 function spotifyBody(s: SpotifyState): string {
   if (s.status === "unconfigured")
-    return `<p class="empty">Spotify 未設定 — <code>npm run auth:spotify</code></p>`;
+    return `<p class="empty">Spotify 未設定 — <code>pnpm auth:spotify</code></p>`;
   if (!s.track) return `<div class="sp-idle">${spotifyGlyph}<span>再生していません</span></div>`;
   const t = s.track;
   const art = t.artUrl
@@ -127,7 +127,7 @@ function busBody(b: BusState): string {
               (a) => `<li class="bus-row ${a.etaMin !== null && a.etaMin <= 1 ? "soon" : ""}">
                 <span class="bus-eta">${a.etaMin === null ? "—" : a.etaMin <= 0 ? "まもなく" : `${a.etaMin}<b>分</b>`}</span>
                 <span class="bus-dest">${escapeHtml(a.dest)}</span>
-                <span class="bus-meta">${a.scheduled ? `定刻 ${a.scheduled}` : ""} ${a.status ? `· ${escapeHtml(a.status)}` : ""}</span>
+                <span class="bus-meta">${a.scheduled ? `定刻 ${escapeHtml(a.scheduled)}` : ""} ${a.status ? `· ${escapeHtml(a.status)}` : ""}</span>
               </li>`,
             )
             .join("")
@@ -156,7 +156,7 @@ function trainsBody(t: TrainsState): string {
 /* ---------------- calendar ---------------- */
 function calendarBody(c: CalendarState): string {
   if (c.status === "unconfigured")
-    return `<p class="empty">カレンダー未設定 — <code>npm run auth:google</code></p>`;
+    return `<p class="empty">カレンダー未設定 — <code>pnpm auth:google</code></p>`;
   if (!c.events.length) return `<p class="empty">予定はありません</p>`;
   let lastDay = "";
   return `<ul class="cal">${c.events
@@ -166,7 +166,7 @@ function calendarBody(c: CalendarState): string {
       lastDay = day;
       const time = e.allDay ? "終日" : hhmm(e.start);
       return `${head}<li class="cal-ev">
-        <span class="cal-dot" style="background:${e.color ?? "#4f8cff"}"></span>
+        <span class="cal-dot" style="background:${/^#[0-9a-f]{6}$/i.test(e.color ?? "") ? e.color : "#4f8cff"}"></span>
         <span class="cal-time">${time}</span>
         <span class="cal-body"><span class="cal-title">${escapeHtml(e.title)}</span>${
           e.location ? `<span class="cal-loc">${escapeHtml(e.location)}</span>` : ""
@@ -185,19 +185,46 @@ function header(state: SignageState): string {
   </header>`;
 }
 
+let previousLocation: string | null = null;
+const rendered = new Map<string, string>();
+
 export function render(state: SignageState): void {
-  const app = document.getElementById("app")!;
-  app.innerHTML = `
-    ${header(state)}
-    ${card("weather", "天気 · " + escapeHtml(state.location.name), state.weather, weatherBody(state.weather))}
-    ${card("spotify", "再生中", state.spotify, spotifyBody(state.spotify))}
-    ${card("trains", "鉄道・新幹線", state.trains, trainsBody(state.trains))}
-    ${card("bus", "遠鉄バス 接近", state.bus, busBody(state.bus))}
-    ${card("calendar", "カレンダー", state.calendar, calendarBody(state.calendar))}
-  `;
+  const app = document.getElementById("app");
+  if (!app) return;
+  const locationChanged = previousLocation !== state.location.name;
+  if (!app.querySelector(".topbar")) {
+    app.innerHTML = header(state);
+    rendered.clear();
+  } else if (locationChanged) {
+    const loc = app.querySelector(".loc");
+    if (loc) loc.textContent = state.location.name;
+  }
+  previousLocation = state.location.name;
+
+  // Stable cards preserve images and CSS animations across unrelated updates.
+  const update = (area: string, title: string, meta: WidgetMeta, body: () => string) => {
+    const key = JSON.stringify([title, meta]);
+    if (rendered.get(area) === key) return;
+    const html = card(area, title, meta, body());
+    const current = app.querySelector(`section.${area}`);
+    if (current) current.outerHTML = html;
+    else app.insertAdjacentHTML("beforeend", html);
+    rendered.set(area, key);
+  };
+  update("weather", "天気 · " + escapeHtml(state.location.name), state.weather, () => weatherBody(state.weather));
+  update("spotify", "再生中", state.spotify, () => spotifyBody(state.spotify));
+  update("trains", "鉄道・新幹線", state.trains, () => trainsBody(state.trains));
+  update("bus", "遠鉄バス 接近", state.bus, () => busBody(state.bus));
+  update("calendar", "カレンダー", state.calendar, () => calendarBody(state.calendar));
   updateClock();
-  updateSpotifyProgress(state.spotify);
+  // A weather update must not reset the playback progress anchor.
+  if (lastSpotifyState !== state.spotify.fetchedAt) {
+    updateSpotifyProgress(state.spotify);
+    lastSpotifyState = state.spotify.fetchedAt;
+  }
+  tickSpotify();
 }
+let lastSpotifyState: string | null | undefined;
 
 /* ---------------- live tickers ---------------- */
 let lastSpotify: { progressMs: number; durationMs: number; isPlaying: boolean; at: number } | null =

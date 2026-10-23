@@ -10,7 +10,6 @@ import {
   type CalendarState,
 } from "./types.js";
 
-type WidgetKey = "weather" | "spotify" | "bus" | "trains" | "calendar";
 
 /**
  * Single source of truth for the current signage state. Providers push partial
@@ -69,8 +68,4 @@ export class StateStore {
     return () => this.emitter.off("update", fn);
   }
 
-  // helper for providers to only touch a sub-slice
-  which(key: WidgetKey): WidgetKey {
-    return key;
-  }
 }

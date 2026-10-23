@@ -1,8 +1,8 @@
-import "dotenv/config";
+import "../env.js";
 import { AUTH_PORT, openBrowser, requireEnv, waitForCode } from "./cli-util.js";
 
 // One-time helper: obtain a Spotify refresh token for the now-playing widget.
-//   npm run auth:spotify   (from the repo root, with SPOTIFY_CLIENT_ID/SECRET set)
+//   pnpm auth:spotify   (from the repo root, with SPOTIFY_CLIENT_ID/SECRET set)
 const CALLBACK = "/auth/spotify/callback";
 const SCOPES = ["user-read-playback-state", "user-read-currently-playing"].join(" ");
 

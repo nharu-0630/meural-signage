@@ -1,3 +1,4 @@
+import "../env.js";
 import http from "node:http";
 import { URL } from "node:url";
 import { spawn } from "node:child_process";
@@ -47,7 +48,7 @@ export function waitForCode(callbackPath: string): Promise<string> {
   });
 }
 
-export function requireEnv(...names: string[]): Record<string, string> {
+export function requireEnv<T extends string>(...names: T[]): Record<T, string> {
   const out: Record<string, string> = {};
   const missing: string[] = [];
   for (const n of names) {
@@ -59,5 +60,5 @@ export function requireEnv(...names: string[]): Record<string, string> {
     console.error(`Missing env: ${missing.join(", ")}. Set them in .env or the shell first.`);
     process.exit(1);
   }
-  return out;
+  return out as Record<T, string>;
 }

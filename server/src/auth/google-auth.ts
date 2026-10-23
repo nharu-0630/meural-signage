@@ -1,8 +1,8 @@
-import "dotenv/config";
+import "../env.js";
 import { AUTH_PORT, openBrowser, requireEnv, waitForCode } from "./cli-util.js";
 
 // One-time helper: obtain a Google refresh token for the Calendar widget.
-//   npm run auth:google   (with GOOGLE_CLIENT_ID/SECRET set)
+//   pnpm auth:google   (with GOOGLE_CLIENT_ID/SECRET set)
 const CALLBACK = "/auth/google/callback";
 const SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 

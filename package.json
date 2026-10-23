@@ -5,22 +5,22 @@
   "description": "Self-hosted signage dashboard (weather, Spotify, Entetsu bus, train status, Google Calendar) rendered in a headless browser and streamed to a Meural Canvas via meural-hls.",
   "license": "MIT",
   "type": "module",
-  "workspaces": [
-    "server",
-    "web"
-  ],
   "scripts": {
-    "dev": "npm run dev --workspace web & npm run dev --workspace server",
-    "dev:web": "npm run dev --workspace web",
-    "dev:server": "npm run dev --workspace server",
-    "build": "npm run build --workspace web && npm run build --workspace server",
+    "dev": "pnpm --filter @meural-signage/shared build && pnpm --parallel -r dev",
+    "dev:web": "pnpm --filter @meural-signage/shared build && pnpm --filter @meural-signage/web dev",
+    "dev:server": "pnpm --filter @meural-signage/shared build && pnpm --filter @meural-signage/server dev",
+    "build": "pnpm -r build",
     "start": "node server/dist/index.js",
     "stream": "node server/dist/index.js --stream",
-    "auth:spotify": "npm run auth:spotify --workspace server",
-    "auth:google": "npm run auth:google --workspace server",
-    "typecheck": "npm run typecheck --workspace web && npm run typecheck --workspace server"
+    "auth:spotify": "pnpm --filter @meural-signage/server auth:spotify",
+    "auth:google": "pnpm --filter @meural-signage/server auth:google",
+    "typecheck": "pnpm --filter @meural-signage/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @meural-signage/shared build && pnpm --filter @meural-signage/server test",
+    "browser:install": "pnpm --filter @meural-signage/server exec playwright install chromium",
+    "test:stream": "pnpm build && node scripts/smoke-stream.mjs"
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "packageManager": "pnpm@10.34.6"
 }

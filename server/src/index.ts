@@ -18,13 +18,13 @@ async function main(): Promise<void> {
   let streamer: SignageStreamer | null = null;
   if (wantStream) {
     streamer = new SignageStreamer(cfg);
-    // give the server a moment so the page it renders is reachable
-    setTimeout(() => {
-      void streamer!.start().catch((e) => log("stream", "failed to start:", (e as Error).message));
-    }, 1500);
+    void streamer.start().catch((e: unknown) => log("stream", "failed to start:", e));
   }
 
+  let shuttingDown = false;
   const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     log("main", "shutting down…");
     for (const p of providers) p.stop();
     if (streamer) await streamer.stop();

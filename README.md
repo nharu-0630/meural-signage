@@ -40,7 +40,7 @@ breaking the page.
 
 ## Requirements
 
-- **Node.js ≥ 20** and **ffmpeg** (with libx264) for the stream
+- **Node.js ≥ 20**, **pnpm 10.34.6**, and **ffmpeg** (with libx264) for the stream
 - A **Meural Canvas** reachable on your LAN + the sibling
   [`meural-hls`](https://github.com/nharu-0630/meural-hls) repo (only needed to
   push to the device; the dashboard works standalone in any browser)
@@ -50,13 +50,13 @@ breaking the page.
 ```bash
 git clone https://github.com/nharu-0630/meural-signage.git
 cd meural-signage
-npm install
+pnpm install
 
 cp config.example.json config.json   # edit location / stops / lines
 cp .env.example .env                  # optional: Spotify & Google credentials
 
-npm run build                         # build the web frontend + server
-npm start                             # http://localhost:7000
+pnpm build                         # build the web frontend + server
+pnpm start                             # http://localhost:7000
 ```
 
 Open `http://localhost:7000` — the dashboard renders immediately with weather,
@@ -69,7 +69,7 @@ without credentials or waiting for buses to run? Open
 For development with hot reload:
 
 ```bash
-npm run dev        # Vite dev server (:5173) + API/server (:7000)
+pnpm dev        # Vite dev server (:5173) + API/server (:7000)
 ```
 
 ## Configuration
@@ -94,7 +94,7 @@ Secrets can go in `config.json` too, or in `.env` (which overrides it).
 3. Put `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` in `.env`, then:
 
    ```bash
-   npm run auth:spotify
+   pnpm auth:spotify
    ```
 
    Authorize in the browser; paste the printed `SPOTIFY_REFRESH_TOKEN` into `.env`.
@@ -107,7 +107,7 @@ Secrets can go in `config.json` too, or in `.env` (which overrides it).
 2. Put `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in `.env`, then:
 
    ```bash
-   npm run auth:google
+   pnpm auth:google
    ```
 
    Authorize; paste the printed `GOOGLE_REFRESH_TOKEN` into `.env`. Set the
@@ -119,15 +119,15 @@ meural-signage produces the stream; `meural-hls` delivers it to the device.
 
 ```bash
 # 1) Install Chromium for the headless renderer (first time only)
-npx playwright install chromium
+pnpm browser:install
 
 # 2) Run the server with the renderer enabled — serves /hls/live.m3u8
-npm run stream          # (or set "stream.enabled": true in config.json)
+pnpm stream          # (or set "stream.enabled": true in config.json)
 
 # 3) In the meural-hls repo, point its pusher at our local HLS stream:
 cd ../meural-hls
-MEURAL_HOST=<device-ip> python3 mac/deploy_live.py
-HLS_URL=http://127.0.0.1:7000/hls/live.m3u8 MEURAL_HOST=<device-ip> python3 mac/hls_push.py
+MEURAL_HOST=<device-ip> uv run python mac/deploy_live.py
+HLS_URL=http://127.0.0.1:7000/hls/live.m3u8 MEURAL_HOST=<device-ip> uv run python mac/hls_push.py
 ```
 
 The Canvas then shows the dashboard full-screen, updating in real time. To return
@@ -176,3 +176,30 @@ service's terms of use and don't lower the intervals aggressively.
 ## License
 
 MIT
+
+## Development checks
+
+Use pnpm 10.34.6 (pinned in `packageManager`) and commit `pnpm-lock.yaml`.
+The `shared` workspace provides both the TypeScript model and runtime schema
+for `/api/state` and SSE messages. Builds run in workspace dependency order.
+The server and auth helpers load `.env` from the repository root, including
+when invoked through workspace scripts.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
+pnpm test
+pnpm browser:install
+pnpm test:stream  # Chromium + ffmpeg/ffprobe: actual HLS and DOM smoke check
+```
+
+Configuration errors (including invalid ports, frame sizes and refresh intervals)
+now fail startup with a validation error. Fix the specified setting in `config.json`
+or the environment. The renderer preserves cards whose widget state is unchanged;
+SSE and ffmpeg writes respect backpressure to bound memory use.
+
+When pushing the default landscape HLS stream through meural-hls, optionally set
+`HLS_COPY=1` to avoid the second encode; use the default transcoding for sources
+that do not match the frame's format. Host-side Python commands use uv from the
+meural-hls repository (`uv sync --locked` on first use).

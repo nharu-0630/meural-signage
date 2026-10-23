@@ -37,7 +37,7 @@ Googleカレンダー — をブラウザでレンダリングし、[Meural Canv
 
 ## 必要環境
 
-- **Node.js ≥ 20** と、配信用の **ffmpeg**（libx264 入り）
+- **Node.js ≥ 20**、**pnpm 10.34.6** と、配信用の **ffmpeg**（libx264 入り）
 - LAN上の **Meural Canvas** と、送出用の兄弟リポジトリ
   [`meural-hls`](https://github.com/nharu-0630/meural-hls)
   （端末への送出時のみ必要。ダッシュボード自体は任意のブラウザ単体で動作します）
@@ -47,13 +47,13 @@ Googleカレンダー — をブラウザでレンダリングし、[Meural Canv
 ```bash
 git clone https://github.com/nharu-0630/meural-signage.git
 cd meural-signage
-npm install
+pnpm install
 
 cp config.example.json config.json   # 位置・バス停・路線を編集
 cp .env.example .env                  # 任意: Spotify / Google の資格情報
 
-npm run build                         # フロント + サーバをビルド
-npm start                             # http://localhost:7000
+pnpm build                         # フロント + サーバをビルド
+pnpm start                             # http://localhost:7000
 ```
 
 `http://localhost:7000` を開くと、天気・バス・鉄道はすぐに表示されます。
@@ -65,7 +65,7 @@ Spotifyとカレンダーは資格情報を設定すると表示されます。
 開発（ホットリロード）:
 
 ```bash
-npm run dev        # Vite devサーバ(:5173) + API/サーバ(:7000)
+pnpm dev        # Vite devサーバ(:5173) + API/サーバ(:7000)
 ```
 
 ## 設定
@@ -88,7 +88,7 @@ npm run dev        # Vite devサーバ(:5173) + API/サーバ(:7000)
 3. `.env` に `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` を設定して実行:
 
    ```bash
-   npm run auth:spotify
+   pnpm auth:spotify
    ```
 
    ブラウザで認可し、表示された `SPOTIFY_REFRESH_TOKEN` を `.env` に貼り付け。
@@ -100,7 +100,7 @@ npm run dev        # Vite devサーバ(:5173) + API/サーバ(:7000)
 2. `.env` に `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` を設定して実行:
 
    ```bash
-   npm run auth:google
+   pnpm auth:google
    ```
 
    認可後、表示された `GOOGLE_REFRESH_TOKEN` を `.env` に貼り付け。表示するカレンダーは
@@ -112,15 +112,15 @@ npm run dev        # Vite devサーバ(:5173) + API/サーバ(:7000)
 
 ```bash
 # 1) ヘッドレスレンダラ用に Chromium を導入（初回のみ）
-npx playwright install chromium
+pnpm browser:install
 
 # 2) レンダラ有効でサーバ起動 — /hls/live.m3u8 を配信
-npm run stream          # または config.json の "stream.enabled": true
+pnpm stream          # または config.json の "stream.enabled": true
 
 # 3) meural-hls 側で、ローカルのHLSストリームを指定して送出:
 cd ../meural-hls
-MEURAL_HOST=<端末IP> python3 mac/deploy_live.py
-HLS_URL=http://127.0.0.1:7000/hls/live.m3u8 MEURAL_HOST=<端末IP> python3 mac/hls_push.py
+MEURAL_HOST=<端末IP> uv run python mac/deploy_live.py
+HLS_URL=http://127.0.0.1:7000/hls/live.m3u8 MEURAL_HOST=<端末IP> uv run python mac/hls_push.py
 ```
 
 Canvasにダッシュボードが全画面でリアルタイム表示されます。通常表示へ戻すには
@@ -168,3 +168,29 @@ config.example.json    config.json にコピー
 ## ライセンス
 
 MIT
+
+## 開発・検証
+
+pnpm 10.34.6を `packageManager` に固定し、`pnpm-lock.yaml` を使用します。
+`shared` workspaceでサーバー・画面共通の型と、`/api/state`・SSEの
+実行時検証スキーマを管理し、依存順にビルドします。`.env` はworkspace経由の
+起動でもリポジトリ直下から読み込みます。
+
+```bash
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
+pnpm test
+pnpm browser:install
+pnpm test:stream  # Chromiumとffmpeg/ffprobeで実HLS・DOMを確認
+```
+
+不正なポート・映像サイズ・更新間隔などの設定は、起動時に検証エラーとして
+報告します。`config.json` または環境変数の該当箇所を修正してください。
+画面は未変更のカードを保持し、SSEとffmpegへの出力待ちを考慮して
+メモリの無制限な増加を防止します。
+
+既定の横画面HLS出力をmeural-hlsへ送る場合、`HLS_COPY=1` で
+二重エンコードを省略できます。形式が異なる入力には既定の再エンコードを
+使ってください。ホスト側Pythonの実行にはmeural-hls側でuvを使用し、
+初回に `uv sync --locked` を実行してください。
