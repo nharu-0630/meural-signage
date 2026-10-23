@@ -21,19 +21,25 @@ interface ParsedLine {
 // Each row is: <a href="/diainfo/CODE/DIR">NAME</a></td><td>STATUS</td><td>DETAIL</td>
 function parsePref(html: string): Map<string, ParsedLine> {
   const map = new Map<string, ParsedLine>();
-  const re = /\/diainfo\/(\d+)\/\d+"[^>]*>([^<]+)<\/a>\s*<\/td>\s*<td>([^<]*)<\/td>\s*<td>([^<]*)<\/td>/g;
+  // The status/detail cells may contain markup (e.g. a trouble line renders
+  // <span class="colTrouble">列車遅延</span>), so capture inner HTML and strip tags.
+  const re = /\/diainfo\/(\d+)\/\d+"[^>]*>([^<]+)<\/a>\s*<\/td>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
     const code = m[1]!;
     if (map.has(code)) continue;
     map.set(code, {
       code,
-      name: decodeEntities(m[2]!.trim()),
-      status: decodeEntities(m[3]!.trim()) || "情報取得中",
-      detail: decodeEntities(m[4]!.trim()),
+      name: decodeEntities(stripTags(m[2]!)),
+      status: decodeEntities(stripTags(m[3]!)) || "情報取得中",
+      detail: decodeEntities(stripTags(m[4]!)),
     });
   }
   return map;
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]*>/g, "").trim();
 }
 
 function decodeEntities(s: string): string {
