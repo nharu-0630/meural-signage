@@ -48,6 +48,23 @@ export class SignageStreamer {
     }
   }
 
+  /** Portrait renders a tall page; everything else keeps the configured size. */
+  private renderSize(): { w: number; h: number } {
+    return this.cfg.stream.orientation === "portrait"
+      ? { w: 1080, h: 1920 }
+      : { w: this.cfg.stream.width, h: this.cfg.stream.height };
+  }
+
+  private videoFilter(): string {
+    const s = this.cfg.stream;
+    // for a portrait-mounted panel, rotate the tall render onto the landscape
+    // framebuffer; default to a 90° CW turn when portrait with no explicit rotate.
+    let rot = s.rotate;
+    if (s.orientation === "portrait" && rot === "none") rot = "cw";
+    const transpose = rot === "cw" ? "transpose=1," : rot === "ccw" ? "transpose=2," : "";
+    return `fps=${s.fps},${transpose}scale=${s.width}:${s.height},format=yuv420p`;
+  }
+
   private buildFfmpegArgs(dir: string): string[] {
     const s = this.cfg.stream;
     return [
@@ -56,7 +73,7 @@ export class SignageStreamer {
       "-f", "image2pipe",
       "-framerate", String(s.fps),
       "-i", "-",
-      "-vf", `fps=${s.fps},scale=${s.width}:${s.height},format=yuv420p`,
+      "-vf", this.videoFilter(),
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-tune", "zerolatency",
@@ -80,23 +97,25 @@ export class SignageStreamer {
     const dir = this.hlsDir();
     this.cleanHls(dir);
 
-    log("stream", "launching headless chromium…");
+    const { w: rw, h: rh } = this.renderSize();
+    log("stream", `launching headless chromium (${rw}x${rh}, ${s.orientation})…`);
     this.browser = await chromium.launch({
       args: [
         "--no-sandbox",
         "--disable-gpu",
         "--hide-scrollbars",
         "--disable-dev-shm-usage",
-        `--window-size=${s.width},${s.height}`,
+        `--window-size=${rw},${rh}`,
       ],
     });
     const ctx = await this.browser.newContext({
-      viewport: { width: s.width, height: s.height },
+      viewport: { width: rw, height: rh },
       deviceScaleFactor: 1,
       reducedMotion: "no-preference",
     });
     this.page = await ctx.newPage();
-    const url = s.url.replace(/\/$/, "") + "/?mode=stream";
+    const orientParam = s.orientation === "portrait" ? "&orient=portrait" : "";
+    const url = s.url.replace(/\/$/, "") + "/?mode=stream" + orientParam;
     log("stream", `opening ${url}`);
     await this.page.goto(url, { waitUntil: "networkidle", timeout: 30_000 }).catch((e) => {
       warn("stream", `initial goto: ${(e as Error).message}`);
@@ -118,8 +137,8 @@ export class SignageStreamer {
     await client.send("Page.startScreencast", {
       format: "jpeg",
       quality: 80,
-      maxWidth: s.width,
-      maxHeight: s.height,
+      maxWidth: rw,
+      maxHeight: rh,
       everyNthFrame: 1,
     });
     client.on("Page.screencastFrame", async (frame) => {

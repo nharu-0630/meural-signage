@@ -22,8 +22,13 @@ export interface ServerConfig {
 export interface StreamConfig {
   enabled: boolean;
   url: string;
+  /** output frame size sent to the device (the Meural framebuffer is 1920x1080) */
   width: number;
   height: number;
+  /** "landscape" renders 1920x1080; "portrait" renders 1080x1920 then rotates to fit */
+  orientation: "landscape" | "portrait";
+  /** rotation applied before the output frame (for a portrait-mounted panel) */
+  rotate: "none" | "cw" | "ccw";
   fps: number;
   bitrate: string;
   gop: number;
@@ -112,6 +117,8 @@ const DEFAULTS: Config = {
     url: "http://127.0.0.1:7000/",
     width: 1920,
     height: 1080,
+    orientation: "landscape",
+    rotate: "none",
     fps: 15,
     bitrate: "2000k",
     gop: 30,

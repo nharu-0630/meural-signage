@@ -65,6 +65,43 @@ body.stream {
   padding: 26px 32px 32px;
 }
 
+/* ---------- portrait (1080x1920) ---------- */
+body.portrait #app {
+  width: 1080px;
+  height: 1920px;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 130px 720px 208px 300px 1fr;
+  grid-template-areas:
+    "header   header"
+    "weather  weather"
+    "spotify  spotify"
+    "trains   bus"
+    "calendar calendar";
+  gap: 22px;
+  padding: 26px 30px 30px;
+}
+/* weather spans full width in portrait: fit current + hourly + all 5 days */
+body.portrait .wx-daily {
+  gap: 8px;
+}
+body.portrait .wx-icon svg {
+  width: 144px;
+  height: 150px;
+}
+/* trains/bus share a narrow half-row in portrait — keep text on one line */
+body.portrait .bus-dest,
+body.portrait .tr-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.portrait .bus-row {
+  grid-template-columns: 118px 1fr;
+}
+body.portrait .bus-meta {
+  grid-column: 2;
+}
+
 /* ---------- top bar ---------- */
 .topbar {
   display: flex;

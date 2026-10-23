@@ -6,15 +6,20 @@ import { demoState } from "./demo.js";
 const params = new URLSearchParams(location.search);
 if (params.get("mode") === "stream") document.body.classList.add("stream");
 const DEMO = params.get("demo") === "1";
+const PORTRAIT = params.get("orient") === "portrait";
+if (PORTRAIT) document.body.classList.add("portrait");
 
-// Scale the fixed 1920x1080 stage to fit the window (letterboxed, centered).
-// In the headless stream the viewport is exactly 1920x1080 so scale == 1.
+// The stage is a fixed size (1920x1080, or 1080x1920 in portrait) scaled to fit
+// the window, letterboxed and centered. In the headless stream the viewport
+// matches the stage so scale == 1.
+const STAGE_W = PORTRAIT ? 1080 : 1920;
+const STAGE_H = PORTRAIT ? 1920 : 1080;
 function fit(): void {
   const app = document.getElementById("app");
   if (!app) return;
-  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  const x = Math.round((window.innerWidth - 1920 * s) / 2);
-  const y = Math.round((window.innerHeight - 1080 * s) / 2);
+  const s = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+  const x = Math.round((window.innerWidth - STAGE_W * s) / 2);
+  const y = Math.round((window.innerHeight - STAGE_H * s) / 2);
   app.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
 }
 window.addEventListener("resize", fit);

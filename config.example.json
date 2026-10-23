@@ -14,10 +14,13 @@
   },
 
   "stream": {
+    "$comment": "orientation 'portrait' renders 1080x1920 and rotates ('rotate': cw|ccw) onto the 1920x1080 framebuffer for a portrait-mounted panel. Flip rotate if the image is upside down.",
     "enabled": false,
     "url": "http://127.0.0.1:7000/",
     "width": 1920,
     "height": 1080,
+    "orientation": "landscape",
+    "rotate": "none",
     "fps": 15,
     "bitrate": "2000k",
     "gop": 30,
