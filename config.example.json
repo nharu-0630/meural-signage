@@ -66,8 +66,10 @@
     },
 
     "calendar": {
+      "$comment": "Two auth modes. Recommended (headless, no token expiry): set serviceAccountKeyFile to a Google service-account key JSON and share your calendar with its client_email; set calendarIds to your calendar address(es). Alternative: leave serviceAccountKeyFile empty and use OAuth clientId/clientSecret/refreshToken (via `npm run auth:google`).",
       "enabled": true,
       "refreshSec": 300,
+      "serviceAccountKeyFile": "",
       "clientId": "",
       "clientSecret": "",
       "refreshToken": "",

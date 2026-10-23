@@ -81,6 +81,8 @@ export interface TrainsProviderConfig {
 export interface CalendarProviderConfig {
   enabled: boolean;
   refreshSec: number;
+  /** path to a Google service-account key JSON; when set, used instead of OAuth */
+  serviceAccountKeyFile: string;
   clientId: string;
   clientSecret: string;
   refreshToken: string;
@@ -138,6 +140,7 @@ const DEFAULTS: Config = {
     calendar: {
       enabled: true,
       refreshSec: 300,
+      serviceAccountKeyFile: "",
       clientId: "",
       clientSecret: "",
       refreshToken: "",
@@ -178,6 +181,7 @@ function applyEnv(cfg: Config): Config {
   if (env.GOOGLE_CLIENT_ID) cfg.providers.calendar.clientId = env.GOOGLE_CLIENT_ID;
   if (env.GOOGLE_CLIENT_SECRET) cfg.providers.calendar.clientSecret = env.GOOGLE_CLIENT_SECRET;
   if (env.GOOGLE_REFRESH_TOKEN) cfg.providers.calendar.refreshToken = env.GOOGLE_REFRESH_TOKEN;
+  if (env.GOOGLE_SA_KEY_FILE) cfg.providers.calendar.serviceAccountKeyFile = env.GOOGLE_SA_KEY_FILE;
 
   if (env.MEURAL_SIGNAGE_STREAM === "1") cfg.stream.enabled = true;
   return cfg;

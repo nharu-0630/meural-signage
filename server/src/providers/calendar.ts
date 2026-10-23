@@ -2,7 +2,9 @@ import { Provider, fetchJson } from "./base.js";
 import type { StateStore } from "../state.js";
 import type { CalendarProviderConfig } from "../config.js";
 import type { CalendarEvent, CalendarState } from "../types.js";
-import { googleAccessToken } from "../oauth.js";
+import { googleAccessToken, googleServiceAccountToken } from "../oauth.js";
+
+const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 
 interface GEvent {
   summary?: string;
@@ -21,6 +23,7 @@ const PALETTE = ["#4f8cff", "#34c759", "#ff9f0a", "#ff375f", "#bf5af2", "#5ac8fa
 export class CalendarProvider extends Provider {
   readonly name = "calendar";
   protected refreshSec: number;
+  private useServiceAccount: boolean;
   private configured: boolean;
 
   constructor(
@@ -29,7 +32,15 @@ export class CalendarProvider extends Provider {
   ) {
     super();
     this.refreshSec = cfg.refreshSec;
-    this.configured = Boolean(cfg.clientId && cfg.clientSecret && cfg.refreshToken);
+    this.useServiceAccount = Boolean(cfg.serviceAccountKeyFile);
+    this.configured =
+      this.useServiceAccount || Boolean(cfg.clientId && cfg.clientSecret && cfg.refreshToken);
+  }
+
+  private token(): Promise<string> {
+    return this.useServiceAccount
+      ? googleServiceAccountToken(this.cfg.serviceAccountKeyFile, CAL_SCOPE)
+      : googleAccessToken(this.cfg.clientId, this.cfg.clientSecret, this.cfg.refreshToken);
   }
 
   async tick(): Promise<void> {
@@ -40,7 +51,7 @@ export class CalendarProvider extends Provider {
           status: "unconfigured",
           fetchedAt: null,
           events: [],
-          error: "Google Calendar credentials not set",
+          error: "Set serviceAccountKeyFile (+ share calendar) or OAuth credentials",
         });
       }
       return;
@@ -48,7 +59,7 @@ export class CalendarProvider extends Provider {
 
     const prev = this.store.get().calendar;
     try {
-      const token = await googleAccessToken(this.cfg.clientId, this.cfg.clientSecret, this.cfg.refreshToken);
+      const token = await this.token();
       const timeMin = new Date().toISOString();
       const timeMax = new Date(Date.now() + this.cfg.lookAheadDays * 86400_000).toISOString();
 
